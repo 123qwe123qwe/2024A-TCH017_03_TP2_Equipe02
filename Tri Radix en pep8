@@ -1,0 +1,1571 @@
+;Implémentation du Tri Radix Paramétré en C et Assembleur Pep/8
+;
+;         AUTEURS         : Thomas Simard, Alexandre Cirurso, Mouhcine Imaoun et Mcnestlie Lopez 
+;         DATE            : 08/11/2024
+;         EQUIPE          : Gr03 - Equipe 02
+;         DESCRIPTION     :
+
+
+;                            Ce projet consiste en l'implémentation d'un algorithme de tri radix paramétré en deux parties : 
+;                            une version en langage de haut niveau (C) et une traduction en assembleur Pep/8. L'objectif principal est de 
+;                            trier un tableau de nombres en utilisant deux bases différentes (base 2 et base 16) tout en respectant des normes de programmation,
+;                            notamment la modularité et l'utilisation de sous-programmes.
+
+
+        BR      main,i
+
+;definir les constantes
+MAX:     .EQUATE 20          ;#define MAX 10 -> pour un tableau de 10        
+BASE2:   .EQUATE 1           ;#define BASE 1
+BASE16:  .EQUATE 4           ;#define BASE16 4
+
+;position des variables locales sur la pile
+arr1:    .EQUATE 22          ;int arr1[]
+arr2:    .EQUATE 12          ;int arr2[]
+pas_b2:  .EQUATE 10          ;int passages_b2
+ins_b2:  .EQUATE 8           ;int insertions_b2
+pas_b16: .EQUATE 6           ;int passage_b16
+ins_b16: .EQUATE 4           ;int insertions_b16
+i:       .EQUATE 2           ; i
+med:     .EQUATE 0           ; mediane
+
+
+;taille des variables locales sur la pile
+locs:  .EQUATE 32
+
+
+main:    SUBSP   locs,i 
+   
+
+         LDA     MAX,i      ;passe MAX en paramètre pour n
+         STA     a_arg2,s
+         LDA     arr1,s     ;passe le arr1 en paramètre pour le tableau
+         STA     a_arg1,s
+         SUBSP   a_prms,i 
+         CALL    gen_tab,i   ;gen_tab(arr1, MAX)
+         
+         LDA     MAX,i       ;passe MAX en parametre
+         STA     b_arg3,s
+         LDA     arr2,s      ;passe arr2 en parametre
+         STA     b_arg1,s
+         LDA     arr1,s     ;passe arr1 en parametre
+         STA     b_arg2,s
+         SUBSP   b_prms,i          
+         CALL    cpy_tab,i   ;copy_tab(arr2, arr1, MAX)
+
+
+         LDA     arr1,s      ;passe arr1 en arguments pour arr[]
+         STA     f_arg2,s    
+         LDA     MAX,i       ;passe MAX en argument pour n
+         STA     f_arg1,s
+         SUBSP   f_prms,i
+         CALL    cal_med,i        
+         STA     med,s
+         STRO    txt5,d
+         DECO    med,s
+         CHARO   '\n',i
+         CHARO   '\n',i
+
+         STRO    txt1,d
+
+         LDA     arr1,s      ;passe arr1 en parametre
+         STA     c_arg1,s
+         LDA     MAX,i       ;passe MAX en parametre
+         STA     c_arg2,s    
+         SUBSP   c_prms,i
+         CALL    fnd_max,i
+         STA     d_arg1,s    ;mets le retour de max en parametre
+
+         LDA     BASE2,i
+         STA     d_arg2,s
+         SUBSP   d_prms,i
+         CALL    cal_pas,i
+         STA     pas_b2,s    ;passage_b2 = calculate_passages(find_max(arr1, MAX), BASE2)
+
+         LDA     arr1,s      ;passe arr1[] en argument pour arr[]
+         STA     i_arg1,s
+         LDA     MAX,i       ;passe MAX en argument pour n
+         STA     i_arg2,s
+         LDA     BASE2,i     ;passe BASE 2 en argument pour base_bits
+         STA     i_arg3,s
+         SUBSP   i_prms,i
+         CALL    rad_smp,i   ;radix_simple(arr1, MAX, BASE2)
+
+         LDA     MAX,i       ;passe Max en argument pour n
+         STA     e_arg1,s
+         LDA     BASE2,i     ;passe BASE2 en argument pour base_bits
+         STA     e_arg2,s
+         LDA     pas_b2,s    ;passe passage_b2 en argument pour passage
+         STA     e_arg3,s
+         SUBSP   e_prms,i
+         CALL    cal_ins,i
+         STA     ins_b2,s    ;insertions_b2 = calculate_insertions(MAX, BASE2, passages_b2);
+
+         LDA     arr1,s      ;passe arr1[] en argument
+         STA     g_arg2,s    
+         LDA     MAX,i       ;passe MAX en argument
+         STA     g_arg1,s      
+         SUBSP   g_prms,i
+         CALL    dsp_tab,i   ;disp_tab(arr1, MAX)
+
+         LDA     pas_b2,s
+         STA     h_arg1,s
+         LDA     ins_b2,s
+         STA     h_arg2,s
+         SUBSP   h_prms,i
+         CALL    dsp_res,i   ;display_results(passage_b2, insertions_b2)  
+
+         CHARO   '\n',i
+         CHARO   '\n',i
+         STRO    txt2,d
+
+         LDA     arr2,s      ;passe arr2[] en argument
+         STA     c_arg1,s
+         LDA     MAX,i       ;passe MAX en argument     
+         STA     c_arg2,s
+         SUBSP   c_prms,i
+         CALL    fnd_max,i   ;find(arr2, MAX)
+
+         STA     d_arg1,s    ;mets le retour de find_max en argument
+         LDA     BASE16,i    ;passe BASE16 en argument
+         STA     d_arg2,s   
+         SUBSP   d_prms,i   
+         CALL    cal_pas,i
+         STA     pas_b16,s   ;passage_b16 = calculate_passages(find_max(arr2, MAX), BASE16)
+
+         LDA     arr2,s      ;passe arr2[] en argument
+         STA     i_arg1,s
+         LDA     MAX,i       ;passe MAX en argument
+         STA     i_arg2,s
+         LDA     BASE16,i    ;passe BASE16 en argument
+         STA     i_arg3,s
+         SUBSP   i_prms,i
+         CALL    rad_smp,i
+
+         LDA     MAX,i       ;passe MAX en argument
+         STA     e_arg1,s
+         LDA     BASE16,i    ;passe BASE16 en argument
+         STA     e_arg2,s
+         LDA     pas_b16,s   ;passe passage_b16 en argument
+         STA     e_arg3,s
+         SUBSP   e_prms,i
+         CALL    cal_ins,i
+         STA     ins_b16,s   ;insertions_b16 = calculate_insertion(MAX, BASE16, passages_b16)
+
+         LDA     arr2,s     ;passe arr2[] en argument
+         STA     g_arg2,s    
+         LDA     MAX,i       ;passe MAX en argument
+         STA     g_arg1,s      
+         SUBSP   g_prms,i
+         CALL    dsp_tab,i   ;disp_tab(arr2, MAX)     
+
+
+         LDA     pas_b16,s
+         STA     h_arg1,s
+         LDA     ins_b16,s
+         STA     h_arg2,s
+         SUBSP   h_prms,i
+         CALL    dsp_res,i   ;display_results(passage_b16, insertions_b16)  
+
+
+         ADDSP   locs,i
+         
+
+  
+STOP
+
+
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                                                       Generer tableau <3
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+a_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+a_arg1:   .EQUATE -2         ;pour arr[]
+a_arg2:   .EQUATE -4         ;pour n
+
+
+;positions relatives des paramètres dans la fonction
+a_prm1:  .EQUATE 10          ;pour arr[]
+a_prm2:  .EQUATE 8          ;pour n
+
+
+;taille de la zone des variables locales:
+a_locs:  .EQUATE 2
+
+;position relatives des variables locales
+a_loc1:  .EQUATE 0 ; pour i
+
+
+;Taille des registres
+a_REG:   .EQUATE 4
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+gen_tab: SUBSP   a_REG,i         ;sauvegarder les registres
+         STA     2,s              
+         STX     0,s
+         SUBSP   a_locs,i        ; void gen_tab(int arr[], int n)
+
+
+         LDA     0,i              ;int i=0
+         STA     a_loc1,s 
+
+a_whi:   LDA     a_loc1,s         ;i=MAX
+         CPA     a_prm2,s
+         BREQ    a_end,i
+
+a_bdy:   LDX     a_loc1,s         ;pour l'index i, on met une valeur dans le tableau
+
+         DECI    a_prm1,sxf
+
+         LDA     a_loc1,s         ;i++
+         ADDA    2,i
+         STA     a_loc1,s
+         
+
+         BR      a_whi,i
+
+a_end:   LDA     0,i              ;int i=0
+         STA     a_loc1,s
+
+p_whi:   LDA     a_loc1,s         ;print
+         CPA     a_prm2,s
+         BREQ    p_end,i
+
+p_bdy:   LDX     a_loc1,s
+         DECO    a_prm1,sxf
+         CHARO   ' ',i
+
+         LDA     a_loc1,s
+         ADDA    2,i
+         STA     a_loc1,s
+
+         BR      p_whi,i
+
+p_end:   CHARO   '\n',i
+
+
+         ADDSP   a_locs,i
+
+         LDX     0,s
+         LDA     2,s
+         ADDSP   a_REG,i
+
+         LDX     0,s         ;charge l'adresse de retour dans le registre X
+         STX     a_prms,s    ;place l'adresse ou le pointeur va atterir avant de return
+
+         ADDSP   a_prms,i
+
+
+         RET0                ; Prepare le retour
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                                                       Copier tableau :3
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+;taille de la zone des arguments/paramètres et l'adresse de retour
+b_prms:  .EQUATE 6
+
+;positions relatives des arguments avant l'appel
+b_arg1:  .EQUATE -2          ;pour dest[]
+b_arg2:  .EQUATE -4          ;pour source[]
+b_arg3:  .EQUATE -6          ;pour n
+
+
+;positions relatives des paramètres dans la fonction
+b_prm1:  .EQUATE 12          ;pour dest[]
+b_prm2:  .EQUATE 10          ;pour source[]         
+b_prm3:  .EQUATE 8           ;pour n
+
+;taille de la zone des variables locales:
+b_locs:  .EQUATE 2
+
+;position relatives des variables locales
+b_loc1:  .EQUATE 0           ;pour i
+
+;Taille des registres
+b_REG:   .EQUATE 4
+
+;---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+cpy_tab: SUBSP   b_REG,i          ;sauvegarder les registres
+         STA     2,s              
+         STX     0,s
+         
+         SUBSP   b_locs,i         ;void copy_tab(int dest[], int src[], int n) 
+
+
+         LDA     0,i              ;i=0
+         STA     b_loc1,s
+
+b_whi:   LDA     b_loc1,s 
+         CPA     b_prm3,s
+         BREQ    b_print,i
+
+b_bdy:   LDX     b_loc1,s
+
+         LDA     b_prm2,sxf      ;dest[i] = src[i] 
+         STA     b_prm1,sxf
+
+         LDA     b_loc1,s
+         ADDA    2,i
+         STA     b_loc1,s 
+
+         BR      b_whi,i
+
+b_end:   ADDSP   b_locs,i
+
+         LDX     0,s
+         LDA     2,s
+         ADDSP   b_REG,i
+
+         LDX     0,s
+         STX     b_prms,s
+
+         ADDSP   b_prms,i
+
+         RET0                     ; Prepare le retour
+
+b_print: LDA     0,i              ;i=0
+         STA     b_loc1,s
+
+
+bp_whi:  LDA     b_loc1,s        ;print
+         CPA     b_prm3,s
+         BREQ    bp_end,i
+
+bp_bdy:  LDX     b_loc1,s
+         DECO    b_prm1,sxf
+         CHARO   ' ',i
+         DECO    b_prm2,sxf         
+         CHARO   '\n',i
+
+         LDA     b_loc1,s
+         ADDA    2,i
+         STA     b_loc1,s
+
+         BR      bp_whi,i
+
+bp_end:  BR      b_end,i
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                                               TROUVER LE MAXIMUM 0_0
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+c_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+c_arg1:  .EQUATE -2          ;pour arr[]
+c_arg2:  .EQUATE -4          ;pour n
+
+
+;positions relatives des paramètres dans la fonction
+c_prm1:  .EQUATE 12         ;pour arr[]
+c_prm2:  .EQUATE 10          ;pour n          
+    
+
+;taille de la zone des variables:
+c_locs:  .EQUATE 4 
+
+
+
+;position relatives des variables locales
+c_loc1:  .EQUATE 2          ;pour i
+c_loc2:  .EQUATE 0           ;pour max
+
+;taille des registres
+c_REG:   .EQUATE 4           
+    
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+fnd_max: SUBSP   c_REG,i         ;sauvegarder les registres
+         STA     2,s              
+         STX     0,s
+
+         SUBSP   c_locs,i        ;int find_max(int arr[], int n) {
+
+
+         LDA     0,i             ;i=0
+         STA     c_loc1,s 
+
+         LDX     c_loc1,s        ;max_val = arr[0]\
+         LDA     c_prm1,sxf
+         STA     c_loc2,s
+
+         LDA     0,i             ;i=0
+         STA     c_loc1,s
+
+c_whi:   LDA     c_loc1,s        ;i<MAX
+         CPA     c_prm2,s
+         BREQ    c_end,i
+
+c_bdy:   LDX     c_loc1,s        ;if (arr[i]>max_val)
+         LDA     c_prm1,sxf
+         CPA     c_loc2,s
+         BRGT    c_max,i
+         BR      c_suite,i
+
+c_suite: LDA     c_loc1,s        ;i++
+         ADDA    2,i
+         STA     c_loc1,s
+
+         BR      c_whi,i
+
+c_end:   LDA     c_loc2,s       ;Sauvegarde le maximum dans le registre A 
+
+         ADDSP   c_locs,i
+
+         LDX     0,s            ;retablie registre X seulement
+
+         ADDSP   c_REG,i
+
+         LDX     0,s            ;retablie adresse
+         STX     c_prms,s
+
+         ADDSP   c_prms,i
+
+         RET0
+ 
+c_max:   LDX     c_loc1,s        ;max_val = arr[i]
+         LDA     c_prm1,sxf 
+  
+         STA     c_loc2,s
+
+         BR      c_suite,i     
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                              Calculer passage :0
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+d_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+d_arg1:  .EQUATE -2          ;pour max_val
+d_arg2:  .EQUATE -4          ;pour base_bits
+
+
+;positions relatives des paramètres dans la fonction
+d_prm1:  .EQUATE 12         ;pour max_val
+d_prm2:  .EQUATE 10          ;pour base_bits         
+    
+
+;taille de la zone des variables:
+d_locs:  .EQUATE 4 
+
+
+;position relatives des variables locales
+d_loc1:  .EQUATE 2          ;pour tmp
+d_loc2:  .EQUATE 0           ;pour passage
+
+;taille des registres
+d_REG:   .EQUATE 4           
+    
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+cal_pas: SUBSP   d_REG,i    ;sauvegarder les registres
+
+         STA     2,s              
+         STX     0,s
+
+         SUBSP   d_locs,i    ;alloue la place pour les variables locales
+
+         LDA     0,i         ;passages = 0
+         STA     d_loc2,s
+
+         LDA     d_prm2,s    ;tmp=base_bits
+         STA     d_loc1,s
+
+
+d_whi:   LDA     d_prm2,s    ;tmp=base_bits
+         STA     d_loc1,s
+         
+         LDA     d_prm1,s    ;while (max_val>0)
+         CPA     0,i
+         BRLE    d_end,i     ;max_val<=0
+         BR      d_bdy,i     ;max_val>0
+
+d_bdy:   LDA     d_loc1,s    ;while (tmp!=0)
+         CPA     0,i
+         BREQ    d_end1,i
+         BR      d_bdy1,i  
+         
+d_bdy1:  LDA     d_prm1,s    ;max_val >> 
+         ASRA
+         STA     d_prm1,s
+
+         LDA     d_loc1,s    ;tmp--
+         SUBA    1,i
+         STA     d_loc1,s
+
+         BR      d_bdy,i    
+
+
+d_end1:  LDA     d_loc2,s    ;passages++
+         ADDA    1,i
+         STA     d_loc2,s
+
+         BR      d_whi,i
+
+d_end:   LDA     d_loc2,s    ;sauvegarde passage dans le registre A
+
+         ADDSP   d_locs,i
+
+         LDX     0,s         ;retablie registre X seulement
+         ADDSP   d_REG,i
+
+         LDX     0,s         ;pogne l'adresse
+         STX     d_prms,s
+
+         ADDSP   d_prms,i    ; Prepare le retour
+         RET0
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                Calculer insertions $_$
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+e_prms:  .EQUATE 6
+
+;positions relatives des arguments avant l'appel
+e_arg1:  .EQUATE -2          ;pour n
+e_arg2:  .EQUATE -4          ;pour base_bits
+e_arg3:  .EQUATE -6          ;pour passage
+
+
+;positions relatives des paramètres dans la fonction
+e_prm1:  .EQUATE 10         ;pour passage
+e_prm2:  .EQUATE 12          ;pour base_bits  
+e_prm3:  .EQUATE 14          ;pour n       
+    
+
+;taille de la zone des variables:
+e_locs:  .EQUATE 4
+
+
+;position relatives des variables locales
+e_loc1:  .EQUATE 2         ;pour i
+e_loc2:  .EQUATE 0           ;pour resultat
+
+
+;taille des registres
+e_REG:   .EQUATE 4    
+;------------------------------------------------------------------------------------------------------------------------------------------------------       
+cal_ins: SUBSP   e_REG,i     ;Sauvegarde les registres
+
+         STA     2,s              
+         STX     0,s
+
+         SUBSP   e_locs,i    ;alloue l'espace pour la variable locale
+
+         LDA     e_prm3,s 
+         STA     e_loc1,s    ;i=n
+
+         LDA     e_prm1,s    ;result = passage
+         STA     e_loc2,s
+
+
+e_whi:   LDA     e_loc1,s    ;while(i!=2)
+         CPA     2,i
+         BREQ    e_end,i     ;i=2
+         BR      e_bdy,i     ;i!=2
+
+e_bdy:   LDA     e_loc2,s    ;result =result + passage
+         ADDA    e_prm1,s
+         STA     e_loc2,s
+
+         LDA     e_loc1,s    ;i--
+         SUBA    2,i
+         STA     e_loc1,s
+
+         BR      e_whi,i 
+
+e_end:   DECO    e_loc2,s 
+         
+         LDA     e_loc2,s    ;sauvegarde le résultat dans le registre A
+
+         ADDSP   e_locs,i   ;dépile les variables locales
+
+         LDX     0,s         ;retablit registre X
+         ADDSP   e_REG,i     ;dépile les registres
+
+         LDX     0,s         ;sauvegarde l'adresse dans registre X
+         STX     e_prms,s    ;Stock au bas de la pile
+
+         ADDSP   e_prms,i    ;dépile paramètre
+
+         RET0                ;return avec l'adresse
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            Calculer médiane XD
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+f_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+f_arg1:  .EQUATE -2          ;pour n
+f_arg2:  .EQUATE -4          ;pour arr[]
+
+
+;positions relatives des paramètres dans la fonction
+f_prm1:  .EQUATE 12         ;pour arr[]
+f_prm2:  .EQUATE 14          ;pour n
+ 
+
+;taille de la zone des variables locales:
+f_locs:  .EQUATE 6
+
+
+;position relatives des variables locales
+f_loc1:  .EQUATE 4       ;pour i
+f_loc2:  .EQUATE 2       ;pour med
+f_loc3:  .EQUATE 0       ;pour tmp
+
+
+;taille des registres
+f_REG:   .EQUATE 4    
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+cal_med: SUBSP   f_REG,i
+
+         STA     2,s              
+         STX     0,s
+
+         SUBSP   f_locs,i         ;double calculate_median(int arr[], int n) {
+
+
+         LDA     f_prm2,s         ;i=n&&1
+         ASRA                     ;10/2 =5 on veut nombre de chiffre et non la taille en octets
+         ANDA    1,i
+         STA     f_loc1,s    
+
+         LDA     f_loc1,s         ;if (i==0)      tout ca equivaut (n % 2 == 0)
+         CPA     0,i
+         BREQ    f_if,i           ;i == 0
+         BRNE    f_else,i         ;i != 0 
+         
+f_if:    LDA     f_prm2,s         ; i=[n/2]
+         ASRA
+         STA     f_loc1,s
+
+         LDA     f_loc1,s         ;tmp == i %% 1
+         ANDA    1,i
+         STA     f_loc3,s   
+
+         LDA     f_loc3,s         ;if (tmp ==0 )
+         CPA     0,i
+         BREQ    f_if2,i          ;tmp =0 (pair)
+         BR      f_else2,i        ;tmp =1 (impair)          
+
+f_if2:   LDA     f_loc1,s  
+         SUBA    2,i
+         STA     f_loc1,s     
+
+         LDX     f_loc1,s         ;tmp=arr[n/2 -1]
+         LDA     f_prm1,sxf
+         STA     f_loc3,s    
+
+         LDA     f_prm2,s         ;i=[n/2] 
+         ASRA
+         STA     f_loc1,s
+
+         LDX     f_loc1,s         ;arr[n/2]
+         LDA     f_prm1,sxf  
+         ADDA    f_loc3,s         ;arr[n/2] + tmp = arr[n/2] + arr[n/2 -1]
+         STA     f_loc2,s  
+
+         LDA     f_loc2,s
+         ASRA    
+         STA     f_loc2,s         ;mediane = arr[n/2] + arr[n/2 -1] /2     
+
+         LDA     f_loc2,s         ;sauvegarde la mediane dans le registre A pour le return
+         BR      f_end,i 
+
+f_else2: LDA     f_loc1,s         ;decale au bon octet apres la division
+         SUBA    1,i
+         STA     f_loc1,s 
+
+         BR      f_if2,i         
+
+f_else:  LDA     f_prm2,s         ;i=[n/2]
+         ASRA
+         STA     f_loc1,s
+
+         LDA     f_loc1,s         ; if (n/2 && 1 == 0)
+         ANDA    1,i
+         STA     f_loc3,s         ;tmp = n/2 && 1
+
+         LDA     f_loc3,s
+         CPA     0,i              
+         BREQ    f_if1,i           ; tmp = 0 (pair)
+         BR      f_else1,i         ; tmp = 1 (impair)
+
+f_if1:   LDX     f_loc1,s          ;mediane = arr[n/2]
+         LDA     f_prm1,sxf
+         STA     f_loc2,s       
+
+         LDA     f_loc2,s          ;sauvegarde la mediane dans le registre A pour le return
+         BR      f_end,i   
+
+f_else1: LDA    f_loc1,s           ;-1 pour ajuster a l'octet pair
+         SUBA    1,i
+         STA     f_loc1,s 
+
+         LDX     f_loc1,s          ;mediane== arr[n/2] apres le decalage d'octet
+         LDA     f_prm1,sxf
+         STA     f_loc2,s
+
+         LDA     f_loc2,s
+         BR      f_end,i
+
+f_end:   ADDSP   f_locs,i          ;depile var locale
+
+         LDX     0,s               ;retablie registre
+         ADDSP   f_REG,i
+
+         LDX     0,s               ;envoie l'adresse de retour au bas de la pile
+         STX     f_prms,s
+
+         ADDSP   f_prms,i          ;depile parametre
+
+         RET0
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            Radix Simple
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+i_prms:  .EQUATE 6
+
+;positions relatives des arguments avant l'appel
+i_arg1:  .EQUATE -2         ;pour arr[]
+i_arg2:  .EQUATE -4         ;pour n
+i_arg3:  .EQUATE -6         ;pour base_bits
+
+
+;positions relatives des paramètres dans la fonction
+i_prm1:  .EQUATE 18         ;pour arr[]
+i_prm2:  .EQUATE 16         ;pour n
+i_prm3:  .EQUATE 14         ;pour base_bits  
+ 
+
+;taille de la zone des variables locales:
+i_locs:  .EQUATE 8
+
+
+;position relatives des variables locales
+i_loc1:  .EQUATE 0         ;pour tmp
+i_loc2:  .EQUATE 2         ;pour i
+i_loc3:  .EQUATE 4         ;pour shift
+i_loc4:  .EQUATE 6         ;pour max_val
+
+
+
+;taille des registres
+i_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+rad_smp: SUBSP   i_REG,i     ;Alloue l'espace et sauvegarde les registres
+         STA     2,s
+         STX     0,s
+         SUBSP   i_locs,i    ;void radix_simple(int arr[], int n, int base_bits) {
+
+
+         LDA     i_prm1,s    ;passe arr[] en arguments    
+         STA     c_arg1,s
+         LDA     i_prm2,s    ;passe n en argument
+         STA     c_arg2,s
+         SUBSP   c_prms,i
+         CALL    fnd_max,i   ;libere l'espace et apelle find_max
+         STA     i_loc4,s    ;max_val = find_max(arr, n);
+
+         LDA     0,i         ;shift = 0
+         STA     i_loc3,s
+
+         LDA     0,i         ;i=0
+         STA     i_loc2,s   
+
+i_suite: LDA     i_loc4,s    ;tmp=max_val
+         STA     i_loc1,s     
+         
+         LDA     0,i         ;i=0
+         STA     i_loc2,s   
+
+         ;(max_val >> shift)
+i_whi:   LDA     i_loc2,s    ;while (i!=shift)
+         CPA     i_loc3,s   
+         BREQ    i_whi1,i     ;i=shift
+         BR      i_bdy,i     ;i!=shift  
+
+i_bdy:   LDA     i_loc1,s    ;tmp >>
+         ASRA
+         STA     i_loc1,s  
+
+         LDA     i_loc2,s    ;i++
+         ADDA    1,i
+         STA     i_loc2,s
+
+         BR      i_whi,i
+
+i_whi1:  LDA     i_loc1,s    ;while ((max_val >> shift) > 0)      (tmp > 0)
+         CPA     0,i
+         BRLE    i_end,i     ;(max_val >> shift) <=0      (tmp<=0)
+         BR      i_bdy1,i    ;(max_val >> shift) > 0      (tmp>0)
+
+i_bdy1:  LDA     i_prm1,s    ;passe arr[] en argument
+         STA     j_arg1,s
+         LDA     i_prm2,s    ;passe n en argument
+         STA     j_arg2,s
+         LDA     i_loc3,s    ;passe shift en argument
+         STA     j_arg3,s  
+         LDA     i_prm3,s    ;passe base_bits en argument
+         STA     j_arg4,s         
+         SUBSP   j_prms,i         
+         CALL    rsp,i       ;radix_single_pass(arr, n, shift, base_bits)
+
+
+         LDA     i_loc3,s    ;shift += base_bits
+         ADDA    i_prm3,s
+         STA     i_loc3,s
+
+         
+         BR      i_suite,i
+
+i_end:   ADDSP   i_locs,i    ;depile
+         
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   i_REG,i
+
+         LDX     0,s
+         STX     i_prms,s
+
+         ADDSP   i_prms,i    ; Prepare le retour
+         RET0
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            radix_single_pass
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+j_prms:  .EQUATE 8
+
+;positions relatives des arguments avant l'appel
+j_arg1:  .EQUATE -2         ;pour arr[]
+j_arg2:  .EQUATE -4         ;pour n
+j_arg3:  .EQUATE -6         ;pour shift
+j_arg4:  .EQUATE -8         ;pour base_bits
+
+
+;positions relatives des paramètres dans la fonction
+j_prm1:  .EQUATE 24         ;pour arr[]
+j_prm2:  .EQUATE 22         ;pour n
+j_prm3:  .EQUATE 20         ;pour shift 
+j_prm4:  .EQUATE 18         ;pour base_bits
+ 
+
+;taille de la zone des variables locales:
+j_locs:  .EQUATE 12
+
+
+;position relatives des variables locales
+j_loc1:  .EQUATE 0          ;pour tmp
+j_loc2:  .EQUATE 2          ;pour i
+j_loc3:  .EQUATE 4          ;pour output[]
+j_loc4:  .EQUATE 6          ;pour count[]
+j_loc5:  .EQUATE 8          ;pour mask
+j_loc6:  .EQUATE 10         ;pour base
+
+
+;taille des registres
+j_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+rsp:     SUBSP   j_REG,i     ;alloue l'espace memoire
+         STA     2,s
+         STX     0,s
+         SUBSP   j_locs,i    ;void radix_single_pass(int arr[], int n, int shift, int base_bits) {
+
+
+         LDA     0,i         ;i=0
+         STA     j_loc2,s
+
+         LDA     1,i         ;base=1
+         STA     j_loc6,s     
+
+         ;base = 1 << base_bits
+j_whi:   LDA     j_loc2,s    ;while (i!=base_bits)
+         CPA     j_prm4,s
+         BREQ    j_end,i     ;i=base_bits
+         BR      j_bdy,i     ;i!=base_bits
+
+j_bdy:   LDA     j_loc6,s    ; base <<
+         ASLA
+         STA     j_loc6,s
+         
+         LDA     j_loc2,s    ; i++
+         ADDA    1,i
+         STA     j_loc2,s
+
+         BR      j_whi,i
+
+j_end:   LDA     j_loc6,s    ; mask = base - 1
+         SUBA    1,i   
+         STA     j_loc5,s 
+
+         LDA     j_loc6,s    ; tmp = base * 2 (taille du tableau count, puisque on travaille avec le double d'index)
+         ASLA
+         STA     j_loc1,s 
+
+
+         LDA     j_loc4,s    ;passe count[] en argument
+         STA     k_arg1,s
+         LDA     j_loc1,s    ;passe tmp (base*2) en argument pour la taille du tableau
+         STA     k_arg2,s 
+         SUBSP   k_prms,i   
+         CALL    int_cnt,i   ;init_count(count, base)
+
+         LDA     j_loc4,s    ;passe count[] en argument    
+         STA     l_arg1,s
+         LDA     j_prm1,s    ;passe   arr[] en argument
+         STA     l_arg2,s
+         LDA     j_prm2,s    ;passe n en argument
+         STA     l_arg3,s
+         LDA     j_prm3,s    ;passe shift en argument
+         STA     l_arg4,s
+         LDA     j_loc5,s    ;passe mask en argument
+         STA     l_arg5,s
+         SUBSP   l_prms,i  
+         CALL    fll_cnt,i   ;fill_count(count, arr, n, shift, mask)
+
+         LDA     j_loc4,s    ;passe count[] en argument
+         STA     m_arg1,s
+         LDA     j_loc6,s    ;passe base en argument
+         STA     m_arg2,s
+         SUBSP   m_prms,i
+         CALL    acc_cnt,i   ;accumulate_count(count, base)
+
+         LDA     j_loc3,s    ;passe output[] en argument
+         STA     n_arg1,s
+         LDA     j_loc4,s    ;passe count[] en argument
+         STA     n_arg2,s
+         LDA     j_prm1,s    ;passe arr[] en argument
+         STA     n_arg3,s
+         LDA     j_prm2,s    ;passe n en argument
+         STA     n_arg4,s
+         LDA     j_prm3,s    ;passe shift en argument
+         STA     n_arg5,s
+         LDA     j_loc5,s    ;passe mask en argument
+         STA     n_arg6,s
+         SUBSP   n_prms,i       
+         CALL    bld_otp,i   ;build_output(output, count, arr, n, shift, mask)
+
+         LDA     j_prm1,s    ;passe arr[] en argument
+         STA     o_arg1,s
+         LDA     j_loc3,s    ;passe output[] en argument
+         STA     o_arg2,s
+         LDA     j_prm2,s    ;passe n en argument
+         STA     o_arg3,s
+         SUBSP   o_prms,i          
+         CALL    cpy_otp,i   ;copy_output(arr, output, n)
+
+
+
+         ADDSP   j_locs,i    ;depile
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   j_REG,i
+         LDX     0,s
+         STX     j_prms,s
+         ADDSP   j_prms,i    ; Prepare le retour
+         RET0
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            init_count
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+k_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+k_arg1:  .EQUATE -2          ;pour count[]
+k_arg2:  .EQUATE -4          ;pour base (taille)
+
+
+;positions relatives des paramètres dans la fonction
+k_prm1:  .EQUATE 10        ;pour count[]
+k_prm2:  .EQUATE 8         ;pour base
+
+
+;taille de la zone des variables locales:
+k_locs:  .EQUATE 2
+
+
+;position relatives des variables locales
+k_loc1:  .EQUATE 0       ;pour i
+
+
+;taille des registres
+k_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+int_cnt: SUBSP   k_REG,i     ;pour les registre A et X
+         STA     2,s
+         STX     0,s
+         SUBSP   k_locs,i    ;void init_count(int count[], int base) {
+    
+
+         LDA     0,i         ; i=0
+         STA     k_loc1,s   
+  
+
+k_whi:   LDA     k_loc1,s    ;for (i<base)
+         CPA     k_prm2,s
+         BREQ    k_end,i
+         BR      k_bdy,i
+
+k_bdy:   LDX     k_loc1,s    ;count[i] = 0
+         LDA     0,i
+         STA     k_prm1,sxf
+
+
+         LDA     k_loc1,s    ;i++
+         ADDA    2,i
+         STA     k_loc1,s
+
+         BR      k_whi,i
+
+k_end:   ADDSP   k_locs,i
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   k_REG,i
+         LDX     0,s
+         STX     k_prms,s
+         ADDSP   k_prms,i    ; Prepare le retour
+         RET0           
+
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            fill_count
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+l_prms:  .EQUATE 10
+
+;positions relatives des arguments avant l'appel
+l_arg1:  .EQUATE -2          ;pour count[]
+l_arg2:  .EQUATE -4          ;pour arr[]
+l_arg3:  .EQUATE -6          ;pour n
+l_arg4:  .EQUATE -8          ;pour shift
+l_arg5:  .EQUATE -10         ;pour mask
+
+
+;positions relatives des paramètres dans la fonction
+l_prm1:  .EQUATE 22        ;pour count[]
+l_prm2:  .EQUATE 20        ;pour arr[]
+l_prm3:  .EQUATE 18        ;pour n
+l_prm4:  .EQUATE 16        ;pour shift
+l_prm5:  .EQUATE 14        ;pour mask
+
+;taille de la zone des variables locales:
+l_locs:  .EQUATE 8
+
+
+;position relatives des variables locales
+l_loc1:  .EQUATE 0       ;pour digit
+l_loc2:  .EQUATE 2       ;pour tmp
+l_loc3:  .EQUATE 4       ;pour tmp2
+l_loc4:  .EQUATE 6       ;pour i
+
+
+;taille des registres
+l_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+fll_cnt: SUBSP   l_REG,i     ; pour les regitres A et X
+         STA     2,s
+         STX     0,s
+         SUBSP   l_locs,i    ;void fill_count(int count[], int arr[], int n, int shift, int mask) {
+
+
+         LDA     0,i         ; i=0
+         STA     l_loc4,s
+
+l_whi:   LDA     l_loc4,s    ;for(i<n)
+         CPA     l_prm3,s
+         BREQ    l_end,i
+         BR      l_bdy,i    
+         
+l_bdy:   LDA     0,i         ;tmp=0
+         STA     l_loc2,s
+
+         LDX     l_loc4,s    ;tmp2 = arr[i]
+         LDA     l_prm2,sxf
+         STA     l_loc3,s
+             
+         ;arr[i] >> shift   stock dans tmp2
+l_whi1:  LDA     l_loc2,s    ;while(tmp!=shift)    
+         CPA     l_prm4,s
+         BREQ    l_end1,i    ;tmp==shift  
+         BR      l_bdy1,i    ;tmp!=shift       
+
+l_bdy1:  LDA     l_loc3,s    ;arr[i]>>  (tmp2>>)
+         ASRA
+         STA     l_loc3,s  
+
+         LDA     l_loc2,s    ;tmp++
+         ADDA    1,i
+         STA     l_loc2,s   
+
+         BR      l_whi1,i
+
+         ;une fois que arr[i] >> shift est complet
+l_end1:  LDA     l_loc3,s    ;digit = (arr[i] >> shift) & mask
+         ANDA    l_prm5,s
+         STA     l_loc1,s
+
+         LDA     l_loc1,s    ;Multiplie digit par deux pour l'utiliser comme index du tableau count avec la variable tmp
+         ASLA
+         STA     l_loc2,s
+
+         LDX     l_loc2,s    ;count[digit]++      en pep8: count[digit*2]++   count[tmp]++
+         LDA     l_prm1,sxf
+         ADDA    1,i
+         STA     l_prm1,sxf
+
+         LDA     l_loc4,s    ;i++
+         ADDA    2,i
+         STA     l_loc4,s
+                   
+         BR      l_whi,i
+
+l_end:   ADDSP   l_locs,i
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   l_REG,i
+         LDX     0,s
+         STX     l_prms,s
+         ADDSP   l_prms,i    ; Prepare le retour
+         RET0
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            accumulate_count
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+m_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+m_arg1:  .EQUATE -2          ;pour count[]
+m_arg2:  .EQUATE -4          ;pour base (taille)
+
+
+;positions relatives des paramètres dans la fonction
+m_prm1:  .EQUATE 14          ;pour count[]
+m_prm2:  .EQUATE 12          ;pour base
+
+
+;taille de la zone des variables locales:
+m_locs:  .EQUATE 6
+
+
+;position relatives des variables locales
+m_loc1:  .EQUATE 0           ;pour i
+m_loc2:  .EQUATE 2           ;pour tmp
+m_loc3:  .EQUATE 4           ;pour tmp2
+
+
+;taille des registres
+m_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+
+acc_cnt: SUBSP   m_REG,i     ;espace pour les registres A et X   
+         STA     2,s
+         STX     0,s
+         SUBSP   m_locs,i    ;void accumulate_count(int count[], int base) {
+ 
+
+         LDA     2,i         ;i=2 [1er index]
+         STA     m_loc1,s
+
+         LDA     m_prm2,s    ;tmp = (base*2)_on doit travailler avec le double de l'index de c
+         ASLA
+         STA     m_loc2,s
+
+m_whi:   LDA     m_loc1,s    ;for (i<base*2)  (i<tmp)
+         CPA     m_loc2,s
+         BREQ    m_end,i
+         BR      m_bdy,i
+         
+m_bdy:   LDA     m_loc1,s    ;[i-2]
+         SUBA    2,i
+         STA     m_loc1,s   
+
+         LDX     m_loc1,s    ;tmp2 = count[i-2]
+         LDA     m_prm1,sxf
+         STA     m_loc3,s
+
+         LDA     m_loc1,s    ;[(i-2)+2] = [i]
+         ADDA    2,i
+         STA     m_loc1,s                
+                          
+         LDX     m_loc1,s    ;count[i] += count[i-2] | count[i] += tmp2
+         LDA     m_prm1,sxf
+         ADDA    m_loc3,s
+         STA     m_prm1,sxf
+
+         LDA     m_loc1,s    ;i++
+         ADDA    2,i
+         STA     m_loc1,s
+
+         BR      m_whi,i
+
+m_end:   ADDSP   m_locs,i
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   m_REG,i
+         LDX     0,s
+         STX     m_prms,s
+         ADDSP   m_prms,i    ; Prepare le retour         
+         RET0
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            build_output
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+n_prms:  .EQUATE 12
+
+;positions relatives des arguments avant l'appel
+n_arg1:  .EQUATE -2          ;pour output[]
+n_arg2:  .EQUATE -4          ;pour count[]
+n_arg3:  .EQUATE -6          ;pour arr[]
+n_arg4:  .EQUATE -8          ;pour n
+n_arg5:  .EQUATE -10         ;pour shift
+n_arg6:  .EQUATE -12         ;pour mask
+
+
+;positions relatives des paramètres dans la fonction
+n_prm1:  .EQUATE 26          ;pour output[]
+n_prm2:  .EQUATE 24          ;pour count[]
+n_prm3:  .EQUATE 22          ;pour arr[]
+n_prm4:  .EQUATE 20          ;pour n
+n_prm5:  .EQUATE 18          ;pour shift
+n_prm6:  .EQUATE 16          ;pour mask
+
+
+;taille de la zone des variables locales:
+n_locs:  .EQUATE 10
+
+
+;position relatives des variables locales
+n_loc1:  .EQUATE 0       ;pour i
+n_loc2:  .EQUATE 2       ;pour tmp
+n_loc3:  .EQUATE 4       ;pour tmp2
+n_loc4:  .EQUATE 6       ;pour tmp3
+n_loc5:  .EQUATE 8       ;pour digit
+
+
+;taille des registres
+n_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+bld_otp: SUBSP   n_REG,i     ;espace pour les registres A et X
+         STA     2,s
+         STX     0,s
+         SUBSP   n_locs,i    ;void build_output(int output[], int count[], int arr[], int n, int shift, int mask) {
+
+
+         LDA     n_prm4,s   ; i = n - 2
+         SUBA    2,i
+         STA     n_loc1,s
+
+n_whi:   LDA     n_loc1,s    ;for(i>=0)
+         CPA     0,i
+         BRLT    n_end,i 
+         BR      n_bdy,i
+
+n_bdy:   LDA     0,i         ;tmp=0
+         STA     n_loc2,s
+
+         LDX     n_loc1,s    ;tmp2 = arr[i]
+         LDA     n_prm3,sxf
+         STA     n_loc3,s
+             
+         ;arr[i] >> shift   stock dans tmp2
+n_whi1:  LDA     n_loc2,s    ;while(tmp!=shift)    
+         CPA     n_prm5,s
+         BREQ    n_end1,i    ;tmp==shift  
+         BR      n_bdy1,i    ;tmp!=shift       
+
+n_bdy1:  LDA     n_loc3,s    ;arr[i]>>  (tmp2>>)
+         ASRA
+         STA     n_loc3,s  
+
+         LDA     n_loc2,s    ;tmp++
+         ADDA    1,i
+         STA     n_loc2,s   
+
+         BR      n_whi1,i
+
+         ;une fois que arr[i] >> shift est complet
+n_end1:  LDA     n_loc3,s
+         ANDA    n_prm6,s
+         STA     n_loc5,s    ;digit = (arr[i]>>shift) & mask
+
+         LDA     n_loc5,s    ;tmp2 = digit * 2, pour bien contenir l'index
+         ASLA
+         STA     n_loc3,s
+
+         LDX     n_loc3,s    ;tmp3 = --count[digit]
+         LDA     n_prm2,sxf
+         SUBA    1,i
+         STA     n_loc4,s 
+
+         LDA     n_loc4,s    ;on multiplie tmp3 par deux car il sera utilise comme index pour le tableau output[]
+         ASLA
+         STA     n_loc4,s
+
+         LDX     n_loc1,s    ;tmp = arr[i]   
+         LDA     n_prm3,s
+         STA     n_loc2,s
+
+         LDX     n_loc4,s    ;output[tmp3] = tmp  |  output[--count[digit]] = arr[i]
+         LDA     n_loc2,s
+         STA     n_prm1,sxf
+
+         LDA     n_loc1,s    ; i--
+         SUBA    2,i
+         STA     n_loc1,s
+
+         BR      n_whi,i                   
+
+n_end:   ADDSP   n_locs,i
+         LDX     0,s         ; Restaure les registres
+         LDA     2,s
+         ADDSP   n_REG,i
+         LDX     0,s
+         STX     n_prms,s
+         ADDSP   n_prms,i    ; Prepare le retour
+         RET0
+
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            copy_output
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+o_prms:  .EQUATE 6
+
+;positions relatives des arguments avant l'appel
+o_arg1:  .EQUATE -2          ;pour arr[]
+o_arg2:  .EQUATE -4          ;pour output[]
+o_arg3:  .EQUATE -6          ;pour n
+
+
+;positions relatives des paramètres dans la fonction
+o_prm1:  .EQUATE 14         ;pour arr[]
+o_prm2:  .EQUATE 12         ;pour output[]
+o_prm3:  .EQUATE 10         ;pour n
+
+
+;taille de la zone des variables locales:
+o_locs:  .EQUATE 4
+
+
+;position relatives des variables locales
+o_loc1:  .EQUATE 0         ;pour i
+o_loc2:  .EQUATE 2         ;pour tmp
+
+
+;taille des registres
+o_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+cpy_otp: SUBSP   o_REG,i     ;pour les registres A et X
+         STA     2,s
+         STX     0,s
+         SUBSP   o_locs,i    ;void copy_output(int arr[], int output[], int n) {
+
+
+         LDA     0,i         ; i = 0
+         STA     o_loc1,s    
+
+o_whi:   LDA     o_loc1,s    ; for (i<n)
+         CPA     o_prm3,s
+         BREQ    o_end,i
+         BR      o_bdy,i    
+
+o_bdy:   LDX     o_loc1,s    ;tmp = output[i]
+         LDA     o_prm2,sxf
+         STA     o_loc2,s  
+
+         LDX     o_loc1,s    ; arr[i] = tmp
+         LDA     o_loc2,s
+         STA     o_prm1,sxf  
+
+         LDA     o_loc1,s    ; i++
+         ADDA    2,i
+         STA     o_loc1,s      
+
+         BR      o_whi,i
+
+o_end:   ADDSP   o_locs,i
+         LDX     0,s          ; Restaure les registres
+         LDA     2,s
+         ADDSP   o_REG,i
+         LDX     0,s
+         STX     o_prms,s
+         ADDSP   o_prms,i    ; Prepare le retour
+         RET0
+
+
+
+
+
+
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            Afficher tableau :p
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+g_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+g_arg1:  .EQUATE -4          ;pour n
+g_arg2:  .EQUATE -2          ;pour arr[]
+
+
+;positions relatives des paramètres dans la fonction
+g_prm1:  .EQUATE 10         ;pour arr[]
+g_prm2:  .EQUATE 8          ;pour n
+ 
+
+;taille de la zone des variables locales:
+g_locs:  .EQUATE 2
+
+
+;position relatives des variables locales
+g_loc1:  .EQUATE 0         ;pour i
+
+
+;taille des registres
+g_REG:   .EQUATE 4  
+ 
+;------------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+dsp_tab: SUBSP   g_REG,i
+
+         STA     2,s
+         STX     0,s
+
+         SUBSP   g_locs,i
+
+         LDA     0,i              ;i=0
+         STA     g_loc1,s     
+
+g_whi:   LDA     g_loc1,s         ;for (i<n)
+         CPA     g_prm2,s     
+         BREQ    g_end,i     
+         BR      g_bdy,i
+
+g_bdy:   LDX     g_loc1,s         ;printf("%d ", arr[i])
+         LDA     g_prm1,sxf
+         DECO    g_prm1,sxf
+         CHARO   ' ',i
+
+         LDA     g_loc1,s         ;i++
+         ADDA    2,i
+         STA     g_loc1,s
+
+         BR      g_whi,i    
+
+g_end:   ADDSP   g_locs,i         ;depile variables locales
+
+         LDX     0,s              ;retablie registres et depile
+         LDA     2,s
+         ADDSP   g_REG,i   
+
+         LDX     0,s              ;envoie l'adresse au bas de la pile
+         STX     g_prms,s
+
+         ADDSP   g_prms,i         ;depile parametre
+
+         RET0                     ;return
+
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+;                Afficher Résultats
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+;taille de la zone des arguments/paramètres
+h_prms:  .EQUATE 4
+
+;positions relatives des arguments avant l'appel
+h_arg1:  .EQUATE -2          ;pour passages
+h_arg2:  .EQUATE -4          ;pour insertions
+
+
+;positions relatives des paramètres dans la fonction
+h_prm1:  .EQUATE 10         ;pour passages
+h_prm2:  .EQUATE 8          ;pour insertions
+ 
+
+;taille de la zone des variables locales:
+h_locs:  .EQUATE 2
+
+
+;position relatives des variables locales
+h_loc1:  .EQUATE 0           ;pour i
+
+
+;taille des registres
+h_REG:   .EQUATE 4  
+
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+dsp_res: SUBSP   h_REG,i          ;pour les registres A et X
+
+         STA     2,s
+         STX     0,s
+
+         SUBSP   h_locs,i         ;void display_results(const char *message, int passages, int insertions) {
+
+
+         CHARO   '\n',i           ;affiche le nombre de passages
+         STRO    txt3,d
+         DECO    h_prm1,s    
+
+         CHARO   '\n',i           ;affiche le nombre d'insertions
+         STRO    txt4,d  
+         DECO    h_prm2,s
+
+         ADDSP   h_locs,i         ;depile variable locale
+         
+         LDX     0,s              ;restaure registres et depile
+         LDA     2,s
+         ADDSP   h_REG,i
+
+         LDX     0,s              ;envoie l'adresse au bas de la pile
+         STX     h_prms,s
+
+         ADDSP   h_prms,i         ;depile parametres
+         RET0
+                   
+
+
+
+
+
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+;                            textes .ASCII :p
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+txt1:    .ASCII   "Tri radix en base 2:\n \x00" 
+         STOP
+txt2:    .ASCII   "Tri radix en base 16:\n \x00" 
+         STOP
+txt3:    .ASCII  "Nombre de passages : \x00"
+         STOP
+txt4:    .ASCII  "Nombre d'insertions : \x00"
+         STOP
+txt5:    .ASCII  "\nMédiane du tableau : \x00"
+         STOP
+;--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+.END
+
